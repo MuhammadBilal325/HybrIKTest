@@ -108,3 +108,5 @@ data
 data/
 exp
 model_files
+model_files.zip
+pretrained_models/
