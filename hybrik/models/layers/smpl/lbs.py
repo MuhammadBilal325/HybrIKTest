@@ -24,6 +24,31 @@ import torch
 import torch.nn.functional as F
 
 
+def cross_product(a, b, dim=-1):
+    """ONNX-friendly cross product replacement for torch.cross."""
+    if dim < 0:
+        dim += a.dim()
+
+    if dim < 0 or dim >= a.dim():
+        raise ValueError("Invalid dim for cross_product")
+
+    if a.shape[dim] != 3 or b.shape[dim] != 3:
+        raise ValueError("cross_product expects input size 3 on the selected dimension")
+
+    ax = a.select(dim, 0)
+    ay = a.select(dim, 1)
+    az = a.select(dim, 2)
+
+    bx = b.select(dim, 0)
+    by = b.select(dim, 1)
+    bz = b.select(dim, 2)
+
+    cx = ay * bz - az * by
+    cy = az * bx - ax * bz
+    cz = ax * by - ay * bx
+    return torch.stack((cx, cy, cz), dim=dim)
+
+
 def rot_mat_to_euler(rot_mats):
     # Calculates rotation matrix to euler angles
     # Careful for extreme cases of eular angles like [0.0, pi, 0.0]
@@ -709,7 +734,7 @@ def batch_inverse_kinematics_transform(
             child_final_norm = torch.norm(child_final_loc, dim=1, keepdim=True)
 
             # (B, 3, 1)
-            axis = torch.cross(child_rest_loc, child_final_loc, dim=1)
+            axis = cross_product(child_rest_loc, child_final_loc, dim=1)
             axis_norm = torch.norm(axis, dim=1, keepdim=True)
 
             # (B, 1, 1)
@@ -883,7 +908,7 @@ def batch_inverse_kinematics_transform_naive(
             child_rest_norm = torch.norm(child_rest_loc, dim=2, keepdim=True)
 
             # (B, K, 3, 1)
-            axis = torch.cross(child_rest_loc, child_final_loc, dim=2)
+            axis = cross_product(child_rest_loc, child_final_loc, dim=2)
             axis_norm = torch.norm(axis, dim=2, keepdim=True)
 
             # (B, K, 1, 1)
@@ -1020,7 +1045,7 @@ def batch_get_pelvis_orient(rel_pose_skeleton, rel_rest_pose, parents, children,
     center_rest_loc_norm = torch.norm(center_rest_loc, dim=1, keepdim=True)
 
     # (B, 3, 1)
-    axis = torch.cross(center_rest_loc, center_final_loc, dim=1)
+    axis = cross_product(center_rest_loc, center_final_loc, dim=1)
     axis_norm = torch.norm(axis, dim=1, keepdim=True)
 
     # (B, 1, 1)
@@ -1096,7 +1121,7 @@ def vectors2rotmat(vec_rest, vec_final, dtype):
     vec_rest_norm = torch.norm(vec_rest, dim=1, keepdim=True)
 
     # (B, 3, 1)
-    axis = torch.cross(vec_rest, vec_final, dim=1)
+    axis = cross_product(vec_rest, vec_final, dim=1)
     axis_norm = torch.norm(axis, dim=1, keepdim=True)
 
     # (B, 1, 1)
