@@ -88,11 +88,12 @@ pip list --format=freeze > constraints.txt
 
 conda install -c fvcore -c iopath -c conda-forge fvcore iopath
 conda install -c bottler nvidiacub
-pip install pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py38_cu111_pyt191/download.html
+conda install -c conda-forge pytorch3d
 pip list --format=freeze > constraints.txt
 # 5. Install
 pip install pycocotools -c constraints.txt
 pip install -e .
+pip install numpy==1.23.1
 ```
 
 Download necessary model files from [[Google Drive](https://drive.google.com/file/d/1un9yAGlGjDooPwlnwFpJrbGHRiLaBNzV/view?usp=sharing) | [Baidu](https://pan.baidu.com/s/1hVrUOt2QX_UTs4QuAgN2Lg?pwd=2u3c) (code: `2u3c`) ] and un-zip them in the `${ROOT}` directory.
