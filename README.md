@@ -82,18 +82,21 @@ HybrIK and HybrIK-X are based on a hybrid inverse kinematics (IK) to convert acc
 conda create -n hybrik python=3.8 -y
 conda activate hybrik
 
+# 2. Install PyTorch
 pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
-pip install scipy
-pip list --format=freeze > constraints.txt
 
+# 3. Install PyTorch3D (Optional, only for visualization)
 conda install -c fvcore -c iopath -c conda-forge fvcore iopath
 conda install -c bottler nvidiacub
-conda install -c conda-forge pytorch3d
-pip list --format=freeze > constraints.txt
+pip install git+ssh://git@github.com/facebookresearch/pytorch3d.git@stable
+
+# 4. Pull our code
+git clone https://github.com/Jeff-sjtu/HybrIK.git
+cd HybrIK
+
 # 5. Install
-pip install pycocotools -c constraints.txt
+pip install pycocotools
 pip install -e .
-pip install numpy==1.23.1
 ```
 
 Download necessary model files from [[Google Drive](https://drive.google.com/file/d/1un9yAGlGjDooPwlnwFpJrbGHRiLaBNzV/view?usp=sharing) | [Baidu](https://pan.baidu.com/s/1hVrUOt2QX_UTs4QuAgN2Lg?pwd=2u3c) (code: `2u3c`) ] and un-zip them in the `${ROOT}` directory.
