@@ -245,7 +245,7 @@ dependencies:
       - fonttools==4.60.2
       - future==1.0.0
       - grpcio==1.80.0
-      - hybrik==0.2.0+de3dd15
+      - hybrik==0.2.0+7a31ae3
       - importlib-metadata==8.7.1
       - importlib-resources==6.5.2
       - joblib==1.5.3

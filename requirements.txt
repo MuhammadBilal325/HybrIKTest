@@ -14,7 +14,7 @@ fonttools==4.60.2
 future==1.0.0
 fvcore==0.1.5.post20221221
 grpcio==1.80.0
-hybrik==0.2.0+de3dd15
+hybrik==0.2.0+7a31ae3
 idna==3.11
 importlib_metadata==8.7.1
 importlib_resources==6.5.2
