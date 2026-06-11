@@ -1,6 +1,7 @@
 """Image demo script."""
 import argparse
 import os
+import pickle as pk
 
 import cv2
 import numpy as np
@@ -42,6 +43,11 @@ parser.add_argument('--out-dir',
                     help='output folder',
                     default='',
                     type=str)
+parser.add_argument('--save-pk',
+                    default=False,
+                    dest='save_pk',
+                    help='save prediction',
+                    action='store_true')
 opt = parser.parse_args()
 
 
@@ -89,6 +95,14 @@ hybrik_model.cuda(opt.gpu)
 det_model.eval()
 hybrik_model.eval()
 
+res_keys = [
+    'pred_uvd', 'pred_xyz_17', 'pred_xyz_29', 'pred_xyz_24_struct',
+    'pred_scores', 'pred_camera', 'pred_betas', 'pred_thetas',
+    'pred_phi', 'pred_cam_root', 'transl', 'transl_camsys',
+    'bbox', 'height', 'width', 'img_path'
+]
+res_db = {k: [] for k in res_keys}
+
 files = os.listdir(opt.img_dir)
 smpl_faces = torch.from_numpy(hybrik_model.smpl.faces.astype(np.int32))
 
@@ -131,6 +145,41 @@ for file in tqdm(files):
         focal = 1000.0
         bbox_xywh = xyxy2xywh(bbox)
 
+        transl_camsys = transl.clone()
+        transl_camsys = transl_camsys * 256 / bbox_xywh[2]
+
+        if opt.save_pk:
+            assert pose_input.shape[0] == 1, 'Only support single batch inference for now'
+
+            pred_xyz_jts_17 = pose_output.pred_xyz_jts_17.reshape(17, 3).cpu().detach().numpy()
+            pred_uvd_jts = pose_output.pred_uvd_jts.reshape(-1, 3).cpu().detach().numpy()
+            pred_xyz_jts_29 = pose_output.pred_xyz_jts_29.reshape(-1, 3).cpu().detach().numpy()
+            pred_xyz_jts_24_struct = pose_output.pred_xyz_jts_24_struct.reshape(24, 3).cpu().detach().numpy()
+            pred_scores = pose_output.maxvals.cpu().detach()[:, :29].reshape(29).numpy()
+            pred_camera = pose_output.pred_camera.squeeze(dim=0).cpu().detach().numpy()
+            pred_betas = pose_output.pred_shape.squeeze(dim=0).cpu().detach().numpy()
+            pred_theta = pose_output.pred_theta_mats.squeeze(dim=0).cpu().detach().numpy()
+            pred_phi = pose_output.pred_phi.squeeze(dim=0).cpu().detach().numpy()
+            pred_cam_root = pose_output.cam_root.squeeze(dim=0).cpu().detach().numpy()
+            img_size = np.array((input_image.shape[0], input_image.shape[1]))
+
+            res_db['pred_xyz_17'].append(pred_xyz_jts_17)
+            res_db['pred_uvd'].append(pred_uvd_jts)
+            res_db['pred_xyz_29'].append(pred_xyz_jts_29)
+            res_db['pred_xyz_24_struct'].append(pred_xyz_jts_24_struct)
+            res_db['pred_scores'].append(pred_scores)
+            res_db['pred_camera'].append(pred_camera)
+            res_db['pred_betas'].append(pred_betas)
+            res_db['pred_thetas'].append(pred_theta)
+            res_db['pred_phi'].append(pred_phi)
+            res_db['pred_cam_root'].append(pred_cam_root)
+            res_db['transl'].append(transl[0].cpu().detach().numpy())
+            res_db['transl_camsys'].append(transl_camsys[0].cpu().detach().numpy())
+            res_db['bbox'].append(np.array(bbox))
+            res_db['height'].append(img_size[0])
+            res_db['width'].append(img_size[1])
+            res_db['img_path'].append(img_path)
+
         focal = focal / 256 * bbox_xywh[2]
 
         vertices = pose_output.pred_vertices.detach()
@@ -159,3 +208,13 @@ for file in tqdm(files):
 
         res_path = os.path.join(opt.out_dir, basename)
         cv2.imwrite(res_path, image_vis)
+
+if opt.save_pk:
+    n_frames = len(res_db['img_path'])
+    for key in res_db.keys():
+        print(key)
+        res_db[key] = np.stack(res_db[key])
+        assert res_db[key].shape[0] == n_frames
+
+    with open(os.path.join(opt.out_dir, 'res.pk'), 'wb') as fid:
+        pk.dump(res_db, fid)
